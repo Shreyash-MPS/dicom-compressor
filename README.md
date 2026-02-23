@@ -12,7 +12,7 @@ The objective is to significantly reduce storage usage **without any diagnostic 
 The compression workflow consists of the following steps:
 
 1. **API Request**  
-   The client sends a POST request with the directory path containing `.dcm` files to be compressed and a specific Job Code.
+   The client sends a POST request with the directory path containing `.dcm` files to be compressed and a specific JCode.
 
 2. **Directory Scanning**  
    The Java service scans the provided folder to locate DICOM files (e.g., ending with `.dcm`, `.dicom`, or without extensions).
@@ -57,7 +57,7 @@ The compression workflow consists of the following steps:
 ### 1️⃣ Clone Repository
 
 ```bash
-git clone https://github.com/SushantAhuja1/dicom-compressor.git  
+git clone https://github.com/Shreyash-MPS/dicom-compressor.git  
 cd dicom-compressor
 ```
 
