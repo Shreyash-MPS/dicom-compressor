@@ -24,7 +24,6 @@ The compression workflow consists of the following steps:
    - ✔ Faster compression speed  
    - ✔ Lower CPU usage  
    - ✔ Better compression ratio than classic JPEG Lossless
-   - 
    Typical size reduction: **40–70% (varies by modality)**
 
 4. **Atomic File Replacement**  

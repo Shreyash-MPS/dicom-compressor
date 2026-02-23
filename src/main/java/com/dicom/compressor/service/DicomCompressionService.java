@@ -8,7 +8,8 @@ import java.nio.file.StandardCopyOption;
 @Service
 public class DicomCompressionService {
 
-    private static final String TOOL_NAME = "dcmcjpls.exe";
+    private static final boolean IS_WINDOWS = System.getProperty("os.name").toLowerCase().contains("win");
+    private static final String TOOL_NAME = IS_WINDOWS ? "dcmcjpls.exe" : "dcmcjpls";
     private static final String TOOL_FOLDER = "tools";
     private static final String ARCHIVE_FOLDER = "archive";
 
@@ -19,7 +20,7 @@ public class DicomCompressionService {
         System.out.println("==========================================");
 
         File folder = new File(folderPath);
-        
+
         if (!folder.exists() || !folder.isDirectory()) {
             throw new IllegalArgumentException("Invalid folder path: " + folderPath);
         }
@@ -56,10 +57,16 @@ public class DicomCompressionService {
                         + File.separator
                         + TOOL_FOLDER
                         + File.separator
-                        + TOOL_NAME
-        );
+                        + TOOL_NAME);
 
-        if (!toolFile.exists()) {
+        String command;
+        if (toolFile.exists()) {
+            command = toolFile.getAbsolutePath();
+        } else if (!IS_WINDOWS) {
+            // If on Linux/Mac and it's not in the tools folder, try running from system
+            // PATH
+            command = TOOL_NAME;
+        } else {
             System.err.println("ERROR: Executable not found at: " + toolFile.getAbsolutePath());
             return;
         }
@@ -80,10 +87,9 @@ public class DicomCompressionService {
 
             // ---------- Run Compression ----------
             ProcessBuilder pb = new ProcessBuilder(
-                    toolFile.getAbsolutePath(),
+                    command,
                     originalFile.getAbsolutePath(),
-                    tempCompressedFile.getAbsolutePath()
-            );
+                    tempCompressedFile.getAbsolutePath());
 
             pb.inheritIO();
             Process process = pb.start();
@@ -96,15 +102,13 @@ public class DicomCompressionService {
                 Files.move(
                         originalFile.toPath(),
                         archivedFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                );
+                        StandardCopyOption.REPLACE_EXISTING);
 
                 // Move COMPRESSED to original location
                 Files.move(
                         tempCompressedFile.toPath(),
                         originalFile.toPath(),
-                        StandardCopyOption.REPLACE_EXISTING
-                );
+                        StandardCopyOption.REPLACE_EXISTING);
 
                 System.out.println("✅ Compressed & Archived: " + originalFile.getName());
 
