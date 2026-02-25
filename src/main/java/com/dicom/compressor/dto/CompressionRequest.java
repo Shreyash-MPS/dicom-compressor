@@ -2,14 +2,12 @@ package com.dicom.compressor.dto;
 
 public class CompressionRequest {
     private String folderPath;
-    private String jcode;
 
     public CompressionRequest() {
     }
 
-    public CompressionRequest(String folderPath, String jcode) {
+    public CompressionRequest(String folderPath) {
         this.folderPath = folderPath;
-        this.jcode = jcode;
     }
 
     public String getFolderPath() {
@@ -18,13 +16,5 @@ public class CompressionRequest {
 
     public void setFolderPath(String folderPath) {
         this.folderPath = folderPath;
-    }
-
-    public String getJcode() {
-        return jcode;
-    }
-
-    public void setJcode(String jcode) {
-        this.jcode = jcode;
     }
 }

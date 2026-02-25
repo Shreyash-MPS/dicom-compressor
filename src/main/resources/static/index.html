@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICOM Compressor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+            </div>
+            <h1>DICOM Compression Service</h1>
+            <p>Upload a ZIP file containing DICOM images, compress them, and download the new archive.</p>
+        </header>
+
+        <main>
+            <div id="upload-section">
+
+                <div class="drop-zone" id="drop-zone">
+                    <div class="drop-zone-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <span class="drop-zone-prompt">Drag & Drop your .zip file here<br>or click to browse</span>
+                    <input type="file" id="file-input" accept=".zip" class="drop-zone-input" />
+                </div>
+
+                <div id="file-details" class="hidden">
+                    <span id="file-name"></span>
+                    <button class="btn-text" id="btn-remove">Remove</button>
+                </div>
+
+                <button class="btn btn-primary" id="btn-compress" disabled>Start Compression</button>
+                <div id="upload-error" class="error-text hidden"></div>
+            </div>
+
+            <div id="status-section" class="hidden">
+                <div class="status-card">
+                    <div class="spinner" id="spinner"></div>
+                    <div id="status-icon" class="status-icon hidden"></div>
+                    <h3 id="status-title">Uploading...</h3>
+                    <p id="status-message">Please wait while your file is uploaded.</p>
+
+                    <div class="progress-container hidden" id="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-stats">
+                            <span id="processed-count">0</span> / <span id="total-count">0</span> files compressed
+                        </div>
+                    </div>
+
+                    <a id="btn-download" class="btn btn-success hidden" href="#">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Download Compressed ZIP
+                    </a>
+
+                    <button class="btn btn-outline" id="btn-reset" style="margin-top: 1rem;">Back to Upload</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

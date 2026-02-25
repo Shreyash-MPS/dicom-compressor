@@ -35,26 +35,19 @@ public class DicomRunner implements CommandLineRunner {
         Path path = Paths.get(inputPath).toAbsolutePath().normalize();
 
         if (Files.exists(path) && Files.isDirectory(path)) {
-            File folder = path.toFile();
-            File[] files = folder.listFiles();
+            try {
+                // Generate a random job ID and use the default archive folder
+                String jobId = java.util.UUID.randomUUID().toString();
+                String defaultArchiveDir = System.getProperty("user.dir") + File.separator + "archive";
 
-            int processedCount = 0;
+                int processedCount = compressionService.compressFolder(path.toString(), jobId,
+                        defaultArchiveDir);
 
-            if (files != null && files.length > 0) {
-                System.out.println("Found directory: " + path);
-                System.out.println("Starting compression process...");
-
-                for (File file : files) {
-                    // Only process files that likely have DICOM data
-                    if (file.isFile() && isDicomFile(file)) {
-                        compressionService.compressFile(file);
-                        processedCount++;
-                    }
-                }
                 System.out.println("\n✅ Task Finished!");
                 System.out.println("Total files processed: " + processedCount);
-            } else {
-                System.out.println("ℹ️ The folder is empty.");
+            } catch (Exception e) {
+                System.err.println("❌ Error during compression: " + e.getMessage());
+                e.printStackTrace();
             }
         } else {
             System.err.println("❌ Invalid folder path: " + path);
@@ -62,13 +55,4 @@ public class DicomRunner implements CommandLineRunner {
         }
     }
 
-    /**
-     * Basic check to identify DICOM files.
-     * In a real clinical environment, you'd check for the 'DICM' preamble,
-     * but checking extension is sufficient for this utility.
-     */
-    private boolean isDicomFile(File file) {
-        String name = file.getName().toLowerCase();
-        return name.endsWith(".dcm") || name.endsWith(".dicom") || !name.contains(".");
-    }
 }
