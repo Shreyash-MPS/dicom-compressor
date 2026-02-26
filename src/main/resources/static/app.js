@@ -23,6 +23,7 @@ const btnReset = document.getElementById('btn-reset');
 let selectedFile = null;
 let currentJobId = null;
 let pollInterval = null;
+let isDownloading = false;
 
 // Drag and drop events
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -205,7 +206,18 @@ function resetStatusUI() {
     statusMessage.textContent = "Please wait while your file is submitted.";
 }
 
+btnDownload.addEventListener('click', () => {
+    isDownloading = true;
+    // Reset the flag after a short delay in case the download fails or completes quickly
+    setTimeout(() => { isDownloading = false; }, 1000);
+});
+
 btnReset.addEventListener('click', () => {
+    if (currentJobId) {
+        fetch(`/api/dicom/job/${currentJobId}`, { method: 'DELETE' }).catch(() => { });
+        currentJobId = null;
+    }
+
     btnRemove.click();
 
     uploadSection.classList.remove('hidden');
@@ -213,5 +225,11 @@ btnReset.addEventListener('click', () => {
 
     if (pollInterval) {
         clearInterval(pollInterval);
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    if (currentJobId && !isDownloading) {
+        fetch(`/api/dicom/job/${currentJobId}`, { method: 'DELETE', keepalive: true }).catch(() => { });
     }
 });

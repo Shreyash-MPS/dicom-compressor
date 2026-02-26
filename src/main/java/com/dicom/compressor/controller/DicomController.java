@@ -145,24 +145,19 @@ public class DicomController {
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + zipFile.getName() + "\"");
 
-        // Clean up everything associated with this job after the download starts
-        // We use a separate thread so it doesn't block the file download from starting
-        CompletableFuture.runAsync(() -> {
-            try {
-                Thread.sleep(10000); // 10 seconds delay to ensure stream is reading before we delete
-                String baseTempDir = System.getProperty("user.dir") + File.separator + "temp" + File.separator + jobId;
-                ZipUtil.deleteDirectory(new File(baseTempDir));
-                compressionService.discardJobStatus(jobId);
-                System.out.println("Cleaned up temp files for job: " + jobId);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
         return ResponseEntity.ok()
                 .headers(headers)
                 .contentLength(zipFile.length())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
+    }
+
+    @DeleteMapping("/job/{jobId}")
+    public ResponseEntity<?> deleteJobFiles(@PathVariable String jobId) {
+        String baseTempDir = System.getProperty("user.dir") + File.separator + "temp" + File.separator + jobId;
+        ZipUtil.deleteDirectory(new File(baseTempDir));
+        compressionService.discardJobStatus(jobId);
+        System.out.println("Cleaned up temp files for job: " + jobId);
+        return ResponseEntity.ok().build();
     }
 }
