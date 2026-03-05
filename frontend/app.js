@@ -1,3 +1,5 @@
+const API_BASE = 'http://localhost:8080';
+
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
 const fileDetails = document.getElementById('file-details');
@@ -6,6 +8,10 @@ const fileNameText = document.getElementById('file-name');
 const btnRemove = document.getElementById('btn-remove');
 const btnCompress = document.getElementById('btn-compress');
 const uploadError = document.getElementById('upload-error');
+
+const uploadProgressContainer = document.getElementById('upload-progress-container');
+const uploadProgressFill = document.getElementById('upload-progress-fill');
+const uploadPercentage = document.getElementById('upload-percentage');
 
 const uploadSection = document.getElementById('upload-section');
 const statusSection = document.getElementById('status-section');
@@ -24,6 +30,7 @@ let selectedFile = null;
 let currentJobId = null;
 let pollInterval = null;
 let isDownloading = false;
+let currentXhr = null;
 
 // Drag and drop events
 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -82,24 +89,72 @@ function handleFiles(files) {
     fileNameText.textContent = file.name;
     dropZone.classList.add('hidden');
     fileDetails.classList.remove('hidden');
-    checkSubmitStatus();
+
+    uploadFileWithXhr(file);
+}
+
+function uploadFileWithXhr(file) {
+    btnCompress.setAttribute('disabled', 'true');
+    uploadProgressContainer.classList.remove('hidden');
+    uploadProgressFill.style.width = '0%';
+    uploadPercentage.textContent = '0%';
+    btnRemove.removeAttribute('disabled');
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    currentXhr = new XMLHttpRequest();
+    currentXhr.open('POST', `${API_BASE}/api/dicom/upload`, true);
+
+    currentXhr.upload.onprogress = function (event) {
+        if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            uploadProgressFill.style.width = percentComplete + '%';
+            uploadPercentage.textContent = percentComplete + '%';
+        }
+    };
+
+    currentXhr.onload = function () {
+        if (currentXhr.status >= 200 && currentXhr.status < 300) {
+            const response = JSON.parse(currentXhr.responseText);
+            currentJobId = response.jobId;
+            btnCompress.removeAttribute('disabled');
+            uploadPercentage.textContent = '100% (Ready)';
+        } else {
+            let errorMsg = 'Upload failed';
+            try {
+                const response = JSON.parse(currentXhr.responseText);
+                if (response.error) errorMsg = response.error;
+            } catch (e) { }
+            showError(errorMsg);
+            uploadProgressContainer.classList.add('hidden');
+            btnCompress.setAttribute('disabled', 'true');
+        }
+    };
+
+    currentXhr.onerror = function () {
+        showError('Network error occurred during upload.');
+        uploadProgressContainer.classList.add('hidden');
+        btnCompress.setAttribute('disabled', 'true');
+    };
+
+    currentXhr.send(formData);
 }
 
 btnRemove.addEventListener('click', () => {
+    if (currentXhr) {
+        currentXhr.abort();
+        currentXhr = null;
+    }
     selectedFile = null;
+    currentJobId = null;
     fileInput.value = '';
     dropZone.classList.remove('hidden');
     fileDetails.classList.add('hidden');
-    checkSubmitStatus();
+    uploadProgressContainer.classList.add('hidden');
+    uploadError.classList.add('hidden');
+    btnCompress.setAttribute('disabled', 'true');
 });
-
-function checkSubmitStatus() {
-    if (selectedFile) {
-        btnCompress.removeAttribute('disabled');
-    } else {
-        btnCompress.setAttribute('disabled', 'true');
-    }
-}
 
 function showError(msg) {
     uploadError.textContent = msg;
@@ -107,27 +162,22 @@ function showError(msg) {
 }
 
 btnCompress.addEventListener('click', () => {
-    if (!selectedFile) return;
+    if (!currentJobId) return;
 
     uploadSection.classList.add('hidden');
     statusSection.classList.remove('hidden');
     resetStatusUI();
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
-    fetch('/api/dicom/upload-and-compress', {
-        method: 'POST',
-        body: formData
+    fetch(`${API_BASE}/api/dicom/start/${currentJobId}`, {
+        method: 'POST'
     })
         .then(response => {
             if (!response.ok) {
-                return response.json().then(err => { throw new Error(err.error || 'Upload failed') });
+                return response.json().then(err => { throw new Error(err.error || 'Failed to start compression') });
             }
             return response.json();
         })
         .then(data => {
-            currentJobId = data.jobId;
             statusTitle.textContent = "Compressing DICOM Files";
             statusMessage.textContent = "We are extracting and compressing your files. This may take a while.";
             startPolling();
@@ -141,7 +191,7 @@ function startPolling() {
     if (pollInterval) clearInterval(pollInterval);
 
     pollInterval = setInterval(() => {
-        fetch(`/api/dicom/status/${currentJobId}`)
+        fetch(`${API_BASE}/api/dicom/status/${currentJobId}`)
             .then(res => res.json())
             .then(data => {
                 updateProgress(data);
@@ -180,7 +230,7 @@ function showSuccess() {
     statusTitle.textContent = "Compression Complete!";
     statusMessage.textContent = "Your files have been successfully compressed and re-packaged.";
 
-    btnDownload.href = `/api/dicom/download/${currentJobId}`;
+    btnDownload.href = `${API_BASE}/api/dicom/download/${currentJobId}`;
     btnDownload.classList.remove('hidden');
 }
 
@@ -214,7 +264,7 @@ btnDownload.addEventListener('click', () => {
 
 btnReset.addEventListener('click', () => {
     if (currentJobId) {
-        fetch(`/api/dicom/job/${currentJobId}`, { method: 'DELETE' }).catch(() => { });
+        fetch(`${API_BASE}/api/dicom/job/${currentJobId}`, { method: 'DELETE' }).catch(() => { });
         currentJobId = null;
     }
 
@@ -230,6 +280,6 @@ btnReset.addEventListener('click', () => {
 
 window.addEventListener('beforeunload', () => {
     if (currentJobId && !isDownloading) {
-        fetch(`/api/dicom/job/${currentJobId}`, { method: 'DELETE', keepalive: true }).catch(() => { });
+        fetch(`${API_BASE}/api/dicom/job/${currentJobId}`, { method: 'DELETE', keepalive: true }).catch(() => { });
     }
 });

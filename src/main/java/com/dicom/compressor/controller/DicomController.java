@@ -16,7 +16,9 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/dicom")
 public class DicomController {
@@ -53,8 +55,8 @@ public class DicomController {
         }
     }
 
-    @PostMapping(value = "/upload-and-compress")
-    public ResponseEntity<?> uploadAndCompress(
+    @PostMapping(value = "/upload")
+    public ResponseEntity<?> uploadFile(
             @RequestParam("file") MultipartFile file) {
 
         if (file.isEmpty() || file.getOriginalFilename() == null
@@ -65,13 +67,11 @@ public class DicomController {
         String originalFilename = file.getOriginalFilename();
         String jobId = UUID.randomUUID().toString();
         DicomCompressionService.JobStatus jobStatus = compressionService.createJobStatus(jobId);
+        jobStatus.originalFilename = originalFilename;
 
         // Define temp directories for this specific job
         String baseTempDir = System.getProperty("user.dir") + File.separator + "temp" + File.separator + jobId;
-        String extractDir = baseTempDir + File.separator + "extracted";
-        String archiveDir = baseTempDir + File.separator + "archive";
         String uploadedZipPath = baseTempDir + File.separator + "uploaded.zip";
-        String finalZipPath = baseTempDir + File.separator + "compressed_" + originalFilename;
 
         File baseDirFile = new File(baseTempDir);
         if (!baseDirFile.exists()) {
@@ -83,40 +83,58 @@ public class DicomController {
             File uploadedFile = new File(uploadedZipPath);
             file.transferTo(uploadedFile);
 
-            // Run process asynchronously
-            CompletableFuture.runAsync(() -> {
-                try {
-                    // 1. Unzip
-                    ZipUtil.unzip(uploadedZipPath, extractDir);
-
-                    // 2. Compress (this updates jobStatus internally)
-                    // Note: DicomCompressionService moves the original files to archiveDir
-                    // and replaces the files in extractDir with the newly compressed versions.
-                    compressionService.compressFolder(extractDir, jobId, archiveDir);
-
-                    // 3. Zip the extract dir (which now contains the compressed files)
-                    ZipUtil.zipDirectory(extractDir, finalZipPath);
-
-                    jobStatus.status = "COMPLETED";
-                    jobStatus.resultZipPath = finalZipPath;
-
-                } catch (Exception e) {
-                    jobStatus.status = "FAILED";
-                    jobStatus.errorMsg = e.getMessage();
-                    e.printStackTrace();
-                }
-            });
-
             return ResponseEntity.ok(Map.of(
                     "jobId", jobId,
-                    "status", "PENDING",
-                    "message", "Upload successful, compression started."));
+                    "status", "UPLOADED",
+                    "message", "Upload successful, ready for compression."));
 
         } catch (IOException e) {
             compressionService.discardJobStatus(jobId);
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Failed to save uploaded file: " + e.getMessage()));
         }
+    }
+
+    @PostMapping("/start/{jobId}")
+    public ResponseEntity<?> startCompression(@PathVariable String jobId) {
+        DicomCompressionService.JobStatus jobStatus = compressionService.getJobStatus(jobId);
+
+        if (jobStatus == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String baseTempDir = System.getProperty("user.dir") + File.separator + "temp" + File.separator + jobId;
+        String extractDir = baseTempDir + File.separator + "extracted";
+        String archiveDir = baseTempDir + File.separator + "archive";
+        String uploadedZipPath = baseTempDir + File.separator + "uploaded.zip";
+        String finalZipPath = baseTempDir + File.separator + "compressed_" + jobStatus.originalFilename;
+
+        // Run process asynchronously
+        CompletableFuture.runAsync(() -> {
+            try {
+                // 1. Unzip
+                ZipUtil.unzip(uploadedZipPath, extractDir);
+
+                // 2. Compress (this updates jobStatus internally)
+                compressionService.compressFolder(extractDir, jobId, archiveDir);
+
+                // 3. Zip the extract dir (which now contains the compressed files)
+                ZipUtil.zipDirectory(extractDir, finalZipPath);
+
+                jobStatus.status = "COMPLETED";
+                jobStatus.resultZipPath = finalZipPath;
+
+            } catch (Exception e) {
+                jobStatus.status = "FAILED";
+                jobStatus.errorMsg = e.getMessage();
+                e.printStackTrace();
+            }
+        });
+
+        return ResponseEntity.ok(Map.of(
+                "jobId", jobId,
+                "status", "PROCESSING",
+                "message", "Compression started."));
     }
 
     @GetMapping("/status/{jobId}")

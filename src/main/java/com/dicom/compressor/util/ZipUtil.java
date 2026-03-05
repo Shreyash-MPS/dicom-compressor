@@ -71,8 +71,9 @@ public class ZipUtil {
      */
     public static void zipDirectory(String sourceDirPath, String zipFilePath) throws IOException {
         Path sourcePath = Paths.get(sourceDirPath);
-        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath))) {
-            Files.walk(sourcePath)
+        try (ZipOutputStream zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath));
+                java.util.stream.Stream<Path> paths = Files.walk(sourcePath)) {
+            paths
                     .filter(path -> !Files.isDirectory(path))
                     .forEach(path -> {
                         ZipEntry zipEntry = new ZipEntry(sourcePath.relativize(path).toString().replace("\\", "/"));

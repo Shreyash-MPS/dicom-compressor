@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/svg+xml" href="src/main/resources/static/assets/favicon-DGB-EYuL.ico">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon-DGB-EYuL.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DCompress Toolkit</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -71,6 +71,16 @@
                             <div id="file-details" class="hidden">
                                 <span id="file-name"></span>
                                 <button class="btn-text" id="btn-remove">Remove</button>
+                            </div>
+
+                            <div id="upload-progress-container" class="progress-container hidden"
+                                style="margin-top: 15px; margin-bottom: 15px;">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="upload-progress-fill"></div>
+                                </div>
+                                <div class="progress-stats" style="text-align: center; margin-top: 5px;">
+                                    <span id="upload-percentage">0%</span> Uploaded
+                                </div>
                             </div>
 
                             <button class="btn btn-primary" id="btn-compress" disabled>Start Compression</button>
