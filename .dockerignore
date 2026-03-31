@@ -1,0 +1,29 @@
+# Build output
+target/
+
+# Temp files from processing
+temp/
+
+# Archive files
+archive/
+
+# IDE
+.idea/
+*.iml
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# OS
+*.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs
+README.md

@@ -1,0 +1,27 @@
+services:
+  dicom-compressor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dicom-compressor
+    ports:
+      - "8080:8080"
+    volumes:
+      # Persist temp and archive data outside the container
+      - dicom-temp:/app/temp
+      - dicom-archive:/app/archive
+    environment:
+      - JAVA_OPTS=-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0
+      - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=1000MB
+      - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=1000MB
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  dicom-temp:
+  dicom-archive:
